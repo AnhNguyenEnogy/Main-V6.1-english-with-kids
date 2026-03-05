@@ -14,7 +14,7 @@ declare global {
 }
 
 const TOPICS = [
-  "Động vật", "Động vật nông trại", "Động vật hoang dã", "Động vật biển", "Các loài chim",
+  "Xe công trình", "Nhân vật siêu anh hùng", "Các loại đồ chơi", "Động vật", "Động vật nông trại", "Động vật hoang dã", "Động vật biển", "Các loài chim",
   "Côn trùng", "Trái cây", "Rau củ", "Đồ ăn", "Đồ uống", "Bữa sáng", "Bánh kẹo",
   "Đồ dùng nhà bếp", "Đồ vật trong nhà", "Đồ vật phòng khách", "Đồ vật phòng ngủ",
   "Đồ vật phòng tắm", "Quần áo", "Giày dép", "Thời tiết", "Các mùa", "Màu sắc",
@@ -23,7 +23,29 @@ const TOPICS = [
   "Nghề nghiệp", "Thể thao", "Nhạc cụ", "Hoạt động hàng ngày", "Thói quen buổi sáng",
   "Thói quen buổi tối", "Cảm xúc", "Tính từ", "Từ trái nghĩa", "Thiên nhiên", "Rừng",
   "Đại dương", "Công viên", "Sở thú", "Bãi biển", "Không gian vũ trụ",
-  "Sinh vật tưởng tượng", "Khủng long", "Robot"
+  "Sinh vật tưởng tượng", "Khủng long", "Robot",
+  "Đồ dùng cá nhân", "Phòng tập gym", "Siêu thị", "Bệnh viện", "Ngân hàng",
+  "Rạp chiếu phim", "Nhà hàng", "Quán cà phê", "Thư viện", "Bảo tàng",
+  "Sân bay", "Nhà ga", "Bến xe buýt", "Khách sạn", "Hiệu thuốc",
+  "Tiệm làm tóc", "Tiệm bánh", "Cửa hàng hoa", "Cửa hàng thú cưng", "Công trường xây dựng",
+  "Trang trại", "Vườn bách thảo", "Thủy cung", "Công viên giải trí", "Rạp xiếc",
+  "Sân vận động", "Hồ bơi", "Bãi đậu xe", "Trạm xăng", "Đồn cảnh sát",
+  "Trạm cứu hỏa", "Tòa án", "Nhà thờ", "Chùa", "Nghĩa trang",
+  "Hang động", "Sa mạc", "Núi lửa", "Thác nước", "Hòn đảo",
+  "Bán đảo", "Thung lũng", "Cao nguyên", "Đồng bằng", "Đầm lầy",
+  "Sông ngòi", "Hồ nước", "Biển cả", "Bầu trời", "Các vì sao",
+  "Mặt trăng", "Mặt trời", "Các hành tinh", "Thiên thạch", "Hố đen",
+  "Tàu vũ trụ", "Vệ tinh", "Kính thiên văn", "Kính hiển vi", "Máy tính",
+  "Điện thoại", "Máy tính bảng", "Đồng hồ thông minh", "Tai nghe", "Loa",
+  "Máy ảnh", "Máy quay phim", "Tivi", "Tủ lạnh", "Máy giặt",
+  "Máy điều hòa", "Quạt điện", "Lò vi sóng", "Lò nướng", "Máy hút bụi",
+  "Bàn là", "Máy sấy tóc", "Bàn chải đánh răng", "Kem đánh răng", "Xà phòng",
+  "Dầu gội", "Sữa tắm", "Khăn tắm", "Gương", "Lược",
+  "Nước hoa", "Son môi", "Phấn trang điểm", "Túi xách", "Ví tiền",
+  "Thắt lưng", "Kính mát", "Ô/Dù", "Áo mưa", "Găng tay",
+  "Khăn quàng cổ", "Mũ/Nón", "Tất/Vớ", "Đồ trang sức", "Dụng cụ làm vườn",
+  "Dụng cụ sửa chữa", "Cắm trại", "Leo núi", "Trượt tuyết", "Lặn biển",
+  "Câu cá", "Lướt ván", "Chèo thuyền", "Bắn cung", "Võ thuật"
 ];
 
 const SCENE_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
