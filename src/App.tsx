@@ -42,8 +42,8 @@ const CLOTHING_MODES = [
 ];
 
 const AUTO_IMAGE_OPTIONS = [
-  { id: "YES", label: "KHÔNG" },
-  { id: "NO", label: "CÓ" }
+  { id: "NO", label: "KHÔNG" },
+  { id: "YES", label: "CÓ" }
 ];
 
 const ASPECT_RATIOS = [
@@ -80,6 +80,20 @@ export default function App() {
   const [copiedScript, setCopiedScript] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<Record<number, string>>({});
   const [generatingImages, setGeneratingImages] = useState(false);
+
+  const randomizeTopic = () => {
+    const randomTopic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+    setTopic(randomTopic);
+  };
+
+  const getAspectRatioClass = (ratio: string) => {
+    switch (ratio) {
+      case '9:16': return 'aspect-[9/16]';
+      case '16:9': return 'aspect-video';
+      case '1:1': return 'aspect-square';
+      default: return 'aspect-video';
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setImage: (img: { data: string, mimeType: string } | null) => void) => {
     const file = e.target.files?.[0];
@@ -331,6 +345,12 @@ Generate content for short animated educational videos where a Vietnamese ${pare
 Topic: ${topic}
 Number of scenes: ${numScenes}
 
+IMPORTANT RULES FOR CONTENT GENERATION:
+1. RANDOM CONTENT GENERATION: Every time you generate, the specific animals, objects, and items must be randomly chosen within the topic. Do NOT reuse common examples. Each generation must feel fresh and unique.
+2. NO REPEATED ANIMALS OR OBJECTS: If there are multiple scenes, the animal or object used in each scene must be completely different. Do NOT repeat the same item across scenes.
+3. VARIETY OF VOCABULARY: Use a wide range of vocabulary including animals, fruits, household objects, toys, vehicles, shapes, foods, etc.
+4. SIMPLE LEARNING FORMAT: Each scene follows a natural interaction where the parent points and asks, and the child answers.
+
 CHARACTER SYSTEM
 Character Pair: ${characterPair}
 Child's Name: ${actualChildName}
@@ -401,11 +421,15 @@ ${parentRole.toLowerCase()} pointing at it
 ${childRole.toLowerCase()} looking at it
 The animal or object must be close to them inside the same frame.
 
+Scene 1 MUST include a brief introduction where the ${parentRole.toLowerCase()} tells the ${childRole.toLowerCase()} what they are going to learn today before starting the vocabulary questions.
+
 Each scene must contain EXACTLY:
 ${parentRole} question 1
 ${childRole} answer
 ${parentRole} question 2
 ${childRole} answer
+
+The items in Scene 1 must be different from Scene 2, and so on. NO REPETITION.
 
 OUTPUT FORMAT
 The output must contain exactly four sections formatted exactly like the example below. Do not use Markdown headings like "#", just use the exact text for section headers.
@@ -732,8 +756,15 @@ Scene 2 – Front camera angle, [Character Description of ${parentRole}], [Chara
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
                   <div className="col-span-1">
-                    <label htmlFor="topic" className="block text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                      📚 Chủ đề
+                    <label htmlFor="topic" className="block text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">📚 Chủ đề</span>
+                      <button 
+                        type="button"
+                        onClick={randomizeTopic}
+                        className="text-[10px] bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw size={10} /> Ngẫu nhiên
+                      </button>
                     </label>
                     <select
                       id="topic"
@@ -1051,8 +1082,13 @@ Scene 2 – Front camera angle, [Character Description of ${parentRole}], [Chara
                       {generatedImages[index] ? (
                         <div className="space-y-3">
                           <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative">
-                            <img src={generatedImages[index]} alt={`Cảnh ${index + 1}`} className="w-full object-cover aspect-video transition-transform duration-500 group-hover:scale-105" />
-                            <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/10 transition-colors" />
+                            <img 
+                              src={generatedImages[index]} 
+                              alt={`Cảnh ${index + 1}`} 
+                              className={`w-full object-cover ${getAspectRatioClass(aspectRatio)} transition-transform duration-500 group-hover:scale-105 cursor-pointer`} 
+                              onClick={() => window.open(generatedImages[index], '_blank')}
+                            />
+                            <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/10 transition-colors pointer-events-none" />
                           </div>
                           <div className="flex items-center gap-2">
                             <button
@@ -1073,11 +1109,11 @@ Scene 2 – Front camera angle, [Character Description of ${parentRole}], [Chara
                           </div>
                         </div>
                       ) : generatingImages ? (
-                        <div className="w-full aspect-video bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400 border border-slate-200">
+                        <div className={`w-full ${getAspectRatioClass(aspectRatio)} bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400 border border-slate-200`}>
                           <Loader2 size={20} className="animate-spin" />
                         </div>
                       ) : (
-                        <div className="w-full aspect-video bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-200 border-dashed">
+                        <div className={`w-full ${getAspectRatioClass(aspectRatio)} bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-200 border-dashed`}>
                           <span className="text-xs font-bold">Chưa tạo ảnh</span>
                         </div>
                       )}
