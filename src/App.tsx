@@ -102,6 +102,44 @@ export default function App() {
   const [copiedScript, setCopiedScript] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<Record<number, string>>({});
   const [generatingImages, setGeneratingImages] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      if (window.aistudio?.hasSelectedApiKey) {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasApiKey(selected);
+      }
+    };
+    checkApiKey();
+  }, []);
+
+  const handleOpenKeySelector = async () => {
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      setHasApiKey(true);
+    }
+  };
+
+  const fetchWithRetry = async (fn: () => Promise<any>, maxRetries = 3) => {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        lastError = err;
+        const errorMessage = err.message || '';
+        if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
+          const waitTime = Math.pow(2, i) * 1000 + Math.random() * 1000;
+          console.warn(`Quota exceeded, retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  };
 
   const randomizeTopic = () => {
     const randomTopic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
@@ -256,25 +294,30 @@ export default function App() {
     setGeneratingImages(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const parts: any[] = [];
       
-      if (parentImage) {
-        parts.push({ inlineData: { data: parentImage.data, mimeType: parentImage.mimeType } });
-      }
-      if (childImage) {
-        parts.push({ inlineData: { data: childImage.data, mimeType: childImage.mimeType } });
-      }
-      parts.push({ text: promptText });
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts },
-        config: {
-          imageConfig: {
-            aspectRatio: aspectRatio
-          }
+      const generate = async () => {
+        const parts: any[] = [];
+        
+        if (parentImage) {
+          parts.push({ inlineData: { data: parentImage.data, mimeType: parentImage.mimeType } });
         }
-      });
+        if (childImage) {
+          parts.push({ inlineData: { data: childImage.data, mimeType: childImage.mimeType } });
+        }
+        parts.push({ text: promptText });
+        
+        return await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: { parts },
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio
+            }
+          }
+        });
+      };
+
+      const response = await fetchWithRetry(generate);
       
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
@@ -318,15 +361,30 @@ export default function App() {
         parts.push({ text: promptText });
         
         try {
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts },
-            config: {
-              imageConfig: {
-                aspectRatio: aspectRatio
-              }
+          const generate = async () => {
+            const parts: any[] = [];
+            
+            if (parentImage) {
+              parts.push({ inlineData: { data: parentImage.data, mimeType: parentImage.mimeType } });
             }
-          });
+            if (childImage) {
+              parts.push({ inlineData: { data: childImage.data, mimeType: childImage.mimeType } });
+            }
+            
+            parts.push({ text: promptText });
+            
+            return await ai.models.generateContent({
+              model: 'gemini-2.5-flash-image',
+              contents: { parts },
+              config: {
+                imageConfig: {
+                  aspectRatio: aspectRatio
+                }
+              }
+            });
+          };
+
+          const response = await fetchWithRetry(generate);
           
           for (const part of response.candidates?.[0]?.content?.parts || []) {
             if (part.inlineData) {
@@ -356,10 +414,20 @@ export default function App() {
       let parentRole = characterPair.includes("Father") ? "Father" : "Mother";
       let childRole = characterPair.includes("Son") ? "Son" : "Daughter";
       
+      let parentGender = parentRole === "Father" ? "man" : "woman";
+      let childGender = childRole === "Son" ? "boy" : "girl";
+      
       let defaultChildName = childRole === "Son" ? "con trai" : "con gái";
       let actualChildName = childName.trim() !== "" ? childName.trim() : defaultChildName;
       
       let parentVietnamese = parentRole === "Father" ? "Cha" : "Mẹ";
+      
+      let parentVoice = parentRole === "Father" 
+        ? "warm, gentle, and encouraging Vietnamese male voice" 
+        : "kind, sweet, and nurturing Vietnamese female voice";
+      let childVoice = childRole === "Son" 
+        ? "cute, high-pitched, and enthusiastic 5-year-old Vietnamese boy's voice" 
+        : "sweet, high-pitched, and cheerful 5-year-old Vietnamese girl's voice";
       
       const promptText = `You are an AI product designer and prompt engineer.
 Generate content for short animated educational videos where a Vietnamese ${parentRole.toLowerCase()} teaches their young ${childRole.toLowerCase()} English vocabulary.
@@ -384,17 +452,17 @@ If reference images are provided (attached to this prompt), you MUST:
 3. Use that exact appearance description consistently in all IMAGE PROMPTS and VIDEO PROMPTS.
 
 If no reference images are provided, use this DEFAULT CHARACTER STYLE:
-Vietnamese ${parentRole.toLowerCase()} around 30 years old, Vietnamese ${childRole.toLowerCase()} around 5 years old.
+Vietnamese ${parentGender} around 30 years old, Vietnamese ${childGender} around 5 years old.
 Style: cute animated Pixar style, friendly facial expressions, round soft facial features.
 
 CLOTHING MODE: ${clothingMode}
-If "Fixed clothing": The clothing remains the exact same in all scenes (e.g., ${parentRole.toLowerCase()} wearing blue shirt and jeans, ${childRole.toLowerCase()} wearing yellow T-shirt and shorts).
+If "Fixed clothing": The clothing remains the exact same in all scenes (e.g., Vietnamese ${parentGender} wearing blue shirt and jeans, Vietnamese ${childGender} wearing yellow T-shirt and shorts).
 If "Automatic clothing": Clothing automatically adapts to the scene environment (e.g., kitchen -> casual home clothes, park -> outdoor casual clothes).
 
 APP PURPOSE
-The application generates short learning scenes where a ${parentRole.toLowerCase()} teaches English words to their ${childRole.toLowerCase()} by pointing at animals or objects that appear clearly in front of them.
-The ${parentRole.toLowerCase()} asks questions in Vietnamese.
-The ${childRole.toLowerCase()} answers with the English word.
+The application generates short learning scenes where a Vietnamese ${parentGender} teaches English words to their Vietnamese ${childGender} by pointing at animals or objects that appear clearly in front of them.
+The Vietnamese ${parentGender} asks questions in Vietnamese.
+The Vietnamese ${childGender} answers with the English word.
 All scripts must be written in Vietnamese.
 All prompts must be written in English.
 
@@ -476,13 +544,16 @@ Con trả lời: "Cat!"
 
 IMAGE PROMPTS
 All prompts must be written in English.
-Each prompt must include: character descriptions, character clothing, reference appearance if provided, front camera view, ${parentRole.toLowerCase()} and ${childRole.toLowerCase()} standing side by side, animal or object close to them, ${parentRole.toLowerCase()} pointing at object, ${childRole.toLowerCase()} looking at object.
+Each prompt must include: character descriptions, character clothing, reference appearance if provided, front camera view, Vietnamese ${parentGender} and Vietnamese ${childGender} standing side by side, animal or object close to them, Vietnamese ${parentGender} pointing at object, Vietnamese ${childGender} looking at object.
 Each prompt MUST include this exact style description at the end: "High-quality 3D animated film style inspired by modern Western animated cinema, soft rounded and friendly character designs, slightly exaggerated facial expressions for emotional clarity, clean and smooth surfaces, richly detailed yet whimsical environments, cinematic lighting with warm golden-hour tones, soft shadows and gentle depth of field, non-photorealistic, stylized realism, emotionally expressive, heartwarming tone, professional studio-quality animation, no text overlays. quality 4K"
 Each prompt must be on a SEPARATE LINE. Each line contains EXACTLY ONE prompt. Do NOT combine multiple prompts in the same line. Do NOT use "." to separate prompts.
 
 VIDEO PROMPTS
 All prompts must be written in English.
-Each prompt must include: same character description, same character clothing, same character appearance, same animation style, front camera angle, ${parentRole.toLowerCase()} and ${childRole.toLowerCase()} standing together, animal or object close in front of them, ${parentRole.toLowerCase()} pointing at object, ${childRole.toLowerCase()} answering.
+Each prompt must include: same character description, same character clothing, same character appearance, same animation style, front camera angle, Vietnamese ${parentGender} and Vietnamese ${childGender} standing together, animal or object close in front of them, Vietnamese ${parentGender} pointing at object, Vietnamese ${childGender} answering.
+Each prompt MUST include these fixed voice descriptions:
+- Vietnamese ${parentGender}: ${parentVoice}
+- Vietnamese ${childGender}: ${childVoice}
 Each prompt MUST include this exact style description at the end: "High-quality 3D animated film style inspired by modern Western animated cinema, soft rounded and friendly character designs, slightly exaggerated facial expressions for emotional clarity, clean and smooth surfaces, richly detailed yet whimsical environments, cinematic lighting with warm golden-hour tones, soft shadows and gentle depth of field, non-photorealistic, stylized realism, emotionally expressive, heartwarming tone, professional studio-quality animation, no text overlays. quality 4K"
 Each prompt must be on a SEPARATE LINE. Each line contains EXACTLY ONE prompt. Do NOT combine multiple prompts in the same line.
 
@@ -498,15 +569,15 @@ The number of IMAGE PROMPTS must be exactly ${ctaMode !== 'NONE' ? numScenes + 1
 The number of VIDEO PROMPTS must be exactly ${ctaMode !== 'NONE' ? numScenes + 1 : numScenes}.
 
 VIDEO PROMPTS must include the EXACT dialogue from SCENE SCRIPTS.
-The ${parentRole.toLowerCase()} must speak Vietnamese.
-The ${childRole.toLowerCase()} must answer in English.
+The Vietnamese ${parentGender} must speak Vietnamese using ${parentVoice}.
+The Vietnamese ${childGender} must answer in English using ${childVoice}.
 The dialogue must appear inside quotation marks.
 
 Example dialogue format inside video prompt:
-${parentRole.toLowerCase()} says "${actualChildName} ơi, con mèo tiếng Anh là gì?"
-${childRole.toLowerCase()} answers "Cat!"
-${parentRole.toLowerCase()} asks "Thế còn con chó thì sao con?"
-${childRole.toLowerCase()} answers "Dog!"
+Vietnamese ${parentGender} says "${actualChildName} ơi, con mèo tiếng Anh là gì?" in a ${parentVoice}
+Vietnamese ${childGender} answers "Cat!" in a ${childVoice}
+Vietnamese ${parentGender} asks "Thế còn con chó thì sao con?" in a ${parentVoice}
+Vietnamese ${childGender} answers "Dog!" in a ${childVoice}
 
 Do not change the wording of the dialogue.
 Do not summarize the dialogue.
@@ -556,10 +627,14 @@ Scene 2 – Front camera angle, [Character Description of ${parentRole}], [Chara
       
       parts.push({ text: promptText });
 
-      const response = await ai.models.generateContentStream({
-        model: 'gemini-3.1-pro-preview',
-        contents: { parts },
-      });
+      const generateStream = async () => {
+        return await ai.models.generateContentStream({
+          model: 'gemini-3.1-pro-preview',
+          contents: { parts },
+        });
+      };
+
+      const response = await fetchWithRetry(generateStream);
 
       let fullText = '';
       for await (const chunk of response) {
@@ -898,6 +973,28 @@ Scene 2 – Front camera angle, [Character Description of ${parentRole}], [Chara
                     </>
                   )}
                 </button>
+
+                {!hasApiKey && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col items-center text-center gap-3">
+                    <p className="text-xs font-bold text-amber-800">
+                      Bạn đang sử dụng hạn mức miễn phí. Nếu gặp lỗi "Quota exceeded", hãy chọn API Key cá nhân để tiếp tục.
+                    </p>
+                    <button
+                      onClick={handleOpenKeySelector}
+                      className="px-4 py-2 bg-amber-600 text-white text-xs font-black rounded-lg hover:bg-amber-700 transition-colors uppercase tracking-widest"
+                    >
+                      Chọn API Key cá nhân
+                    </button>
+                    <a 
+                      href="https://ai.google.dev/gemini-api/docs/billing" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-amber-600 underline font-bold"
+                    >
+                      Tìm hiểu về Billing & API Key
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
